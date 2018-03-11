@@ -5,6 +5,7 @@
 
 #include "chainparams.h"
 #include "consensus/merkle.h"
+#include "crypto/scrypt.h"
 
 #include "tinyformat.h"
 #include "util.h"
@@ -13,6 +14,10 @@
 #include <assert.h>
 
 #include "chainparamsseeds.h"
+#include "arith_uint256.h"
+
+using namespace std;
+using namespace boost;
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -119,9 +124,64 @@ public:
         nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1520724385, 2084524493, 0x1e0ffff0, 1, 25 * COIN);
+
+    if (true && genesis.GetHash() != consensus.hashGenesisBlock)
+        {
+            printf("Searching for genesis genesis...\n");
+            // This will figure out a valid hash and Nonce if you're
+            // creating a different genesis block:
+
+	    arith_uint256 bnTarget;
+	    bool fNegative;
+	    bool fOverflow;
+	    arith_uint256 hashTarget = bnTarget.SetCompact(genesis.nBits, &fNegative, &fOverflow);
+	    //uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits).getuint256();
+
+
+	    // uint256 thash;
+	    arith_uint256 thash;
+            char scratchpad[SCRYPT_SCRATCHPAD_SIZE];
+ 
+            while(true)
+            {
+#if defined(USE_SSE2)
+                // Detection would work, but in cases where we KNOW it always has SSE2,
+                // it is faster to use directly than to use a function pointer or conditional.
+#if defined(_M_X64) || defined(__x86_64__) || defined(_M_AMD64) || (defined(MAC_OSX) && defined(__i386__))
+                // Always SSE2: x86_64 or Intel MacOS X
+                scrypt_1024_1_1_256_sp_sse2(BEGIN(genesis.nVersion), BEGIN(thash), scratchpad);
+#else
+                // Detect SSE2: 32bit x86 Linux or Windows
+                scrypt_1024_1_1_256_sp(BEGIN(genesis.nVersion), BEGIN(thash), scratchpad);
+#endif
+#else
+                // Generic scrypt
+                scrypt_1024_1_1_256_sp_generic(BEGIN(genesis.nVersion), BEGIN(thash), scratchpad);
+#endif
+                if (thash <= hashTarget)
+                    break;
+                if ((genesis.nNonce & 0xFFF) == 0)
+                {
+                    printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+                }
+                ++genesis.nNonce;
+                if (genesis.nNonce == 0)
+                {
+                    printf("NONCE WRAPPED, incrementing time\n");
+                    ++genesis.nTime;
+                }
+            }
+            printf("genesis.nTime = %u \n", genesis.nTime);
+            printf("genesis.nNonce = %u \n", genesis.nNonce);
+            printf("genesis.GetHash = %s\n", genesis.GetHash().ToString().c_str());
+        }
+
+
+
+	
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2"));
-        assert(genesis.hashMerkleRoot == uint256S(""));
+	//  assert(consensus.hashGenesisBlock == uint256S(""));
+	assert(genesis.hashMerkleRoot == uint256S("59c9b9d3fec105bdc716d84caa7579503d5b05b73618d0bf2d5fa639f780a011"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
         vSeeds.emplace_back("seed-a.litecoin.loshan.co.uk", true);
@@ -222,8 +282,8 @@ public:
 
         genesis = CreateGenesisBlock(1520724385, 293345, 0x1e0ffff0, 1, 25 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x4966625a4b2851d9fdee139e56211a0d88575f59ed816ff5e6a63deb4e3e29a0"));
-        assert(genesis.hashMerkleRoot == uint256S(""));
+        assert(consensus.hashGenesisBlock == uint256S(""));
+        assert(genesis.hashMerkleRoot == uint256S("59c9b9d3fec105bdc716d84caa7579503d5b05b73618d0bf2d5fa639f780a011"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
