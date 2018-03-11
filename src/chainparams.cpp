@@ -180,8 +180,10 @@ public:
 
 	
         consensus.hashGenesisBlock = genesis.GetHash();
-	//  assert(consensus.hashGenesisBlock == uint256S(""));
-	assert(genesis.hashMerkleRoot == uint256S("59c9b9d3fec105bdc716d84caa7579503d5b05b73618d0bf2d5fa639f780a011"));
+	assert(consensus.hashGenesisBlock == uint256S("78e88bbff027ac58e9fe7889568b0565bfb067c00c9329fefaf6649928b5a2cd"));
+
+	printf( "merkleroot = %s", genesis.hashMerkleRoot.ToString().c_str() );
+	assert(genesis.hashMerkleRoot == uint256S("a7cc516692a5388f4dc84aeeb5fd2db6d3147d6053735f8ab497a14b84d12370"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
         vSeeds.emplace_back("seed-a.litecoin.loshan.co.uk", true);
@@ -365,7 +367,7 @@ public:
 
         genesis = CreateGenesisBlock(1520724385, 0, 0x207fffff, 1, 25 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x530827f38f93b43ed12af0b3ad25a288dc02ed74d6d7857862df51fc56c416f9"));
+        assert(consensus.hashGenesisBlock == uint256S(""));
         assert(genesis.hashMerkleRoot == uint256S(""));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
